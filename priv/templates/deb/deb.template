@@ -23,7 +23,9 @@
              {platform_etc_dir,  "/etc/{{package_install_name}}"},
              {platform_base_dir, "/usr/lib/{{package_install_name}}"},
              {platform_lib_dir,  "/usr/lib/{{package_install_name}}/lib"},
-             {platform_log_dir,  "/var/log/{{package_install_name}}"}
+             {platform_log_dir,  "/var/log/{{package_install_name}}"},
+             {platform_share_dir, "/usr/share/{{package_install_name}}"},
+             {cuttlefish_schema_dir, "/usr/share/{{package_install_name}}/schema"} 
             ]
 }.
 {template, "Makefile", "Makefile"}.
@@ -31,8 +33,11 @@
 {template, "control", "control"}.
 {template, "copyright", "copyright"}.
 {template, "dirs", "dirs"}.
+{template, "install", "install"}.
 {template, "postinst", "postinst"}.
 {template, "postrm", "postrm"}.
 {template, "rules", "rules"}.
 {template, "vars.config", "vars.config"}.
-{template, "init.script", "init.script"}.
+{template, "init.script", "{{package_name}}.{{package_install_name}}.init"}.
+{template, "package.service", "{{package_name}}.{{package_install_name}}.service"}.
+{template, "package.manpages", "{{package_name}}.manpages"}.

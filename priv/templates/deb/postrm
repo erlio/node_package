@@ -22,10 +22,6 @@ set -e
 case "$1" in
     purge)
         rm -f /etc/default/{{package_install_name}}
-
-        # ensure we remove the rc.d scripts installed by postinst
-        update-rc.d {{package_install_name}} remove >/dev/null
-
         if [ -d /var/log/{{package_install_name}} ]; then
                 rm -r /var/log/{{package_install_name}}
         fi
@@ -34,6 +30,9 @@ case "$1" in
         fi
         if [ -d /etc/{{package_install_name}} ]; then
                 rm -r /etc/{{package_install_name}}
+        fi
+        if [ -d /usr/share/{{package_install_name}} ]; then
+                rm -r /usr/share/{{package_install_name}}
         fi
         if [ -e /etc/init.d/{{package_install_name}} ]; then
                 rm  /etc/init.d/{{package_install_name}}

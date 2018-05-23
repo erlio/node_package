@@ -8,8 +8,8 @@
 if [ `uname -s` = 'SunOS' -a "${POSIX_SHELL}" != "true" ]; then
     POSIX_SHELL="true"
     export POSIX_SHELL
-    # To support 'whoami' add /usr/ucb to path
-    PATH=/usr/ucb:$PATH
+    # To support POSIX.2 compliant 'id' add /usr/xpg4/bin to path
+    PATH=/usr/xpg4/bin:$PATH
     export PATH
     exec /usr/bin/ksh $0 "$@"
 fi
@@ -26,6 +26,7 @@ RUNNER_PATCH_DIR={{runner_patch_dir}}
 PIPE_DIR={{pipe_dir}}
 RUNNER_USER={{runner_user}}
 APP_VERSION={{app_version}}
+CUTTLEFISH_SCHEMA_DIR={{cuttlefish_schema_dir}}
 
 # Variables needed to support creation of .pid files
 # PID directory and pid file name of this app
@@ -44,7 +45,14 @@ fi
 # Registered process to wait for to consider start a success
 WAIT_FOR_PROCESS={{runner_wait_process}}
 
-WHOAMI=`whoami`
+WHOAMI=`id -un`
+
+# erlexec requires HOME to be set. The username needs to be a
+# unquoted literal because of the tilde expansion, hence the
+# usage of eval.
+if [ -z "$HOME" ]; then
+    export HOME=`eval echo "~$WHOAMI"`
+fi
 
 # Echo to stderr on errors
 echoerr() { echo "$@" 1>&2; }
@@ -128,7 +136,7 @@ CUTTLEFISH="{{cuttlefish}}"
 if [ -z "$CUTTLEFISH" ]; then
     CUTTLEFISH_COMMAND_PREFIX=""
 else
-    CUTTLEFISH_COMMAND_PREFIX="$ERTS_PATH/escript $ERTS_PATH/cuttlefish -e $RUNNER_ETC_DIR -s $RUNNER_LIB_DIR -d {{platform_data_dir}}/generated.configs -c $RUNNER_ETC_DIR/{{cuttlefish_conf}}"
+    CUTTLEFISH_COMMAND_PREFIX="$ERTS_PATH/escript $ERTS_PATH/cuttlefish -e $RUNNER_ETC_DIR -s $CUTTLEFISH_SCHEMA_DIR -d {{platform_data_dir}}/generated.configs -c $RUNNER_ETC_DIR/{{cuttlefish_conf}}"
 fi
 
 # Ping node without stealing stdin
@@ -231,8 +239,8 @@ check_user() {
         #     riak-admin bucket-type create mytype {props: {n_val: 4}}
         #  after the arguments were passed into the new shell during exec su
         #
-        # So this regex finds any '"', '{', or '}' and prepends with a '\'
-        ESCAPED_ARGS=`echo "$@" | sed -e 's/\([{}"]\)/\\\\\1/g'`
+        # So this regex finds any '(', ')', "'" , '"', '{', or '}' and prepends with a '\'
+        ESCAPED_ARGS=`echo "$@" | sed -e 's/\([\\\(\\\){}"\x27]\)/\\\\\1/g'`
 
         # This will drop priviledges into the runner user
         # It exec's in a new shell and the current shell will exit
@@ -265,7 +273,7 @@ node_down_check() {
 node_up_check() {
     MUTE=`ping_node 2> /dev/null`
     if [ "$?" -ne 0 ]; then
-        echoerr "Node is not running!"
+        echoerr "Node did not respond to ping!"
         exit 1
     fi
 }

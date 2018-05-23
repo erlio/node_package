@@ -29,7 +29,6 @@ Vendor: {{vendor_name}}
 Packager: {{vendor_contact_name}} <{{vendor_contact_email}}>
 BuildRoot: %{_tmppath}/%{name}-%{_revision}-%{release}-root
 Summary: {{package_shortdesc}}
-Obsoletes: {{package_name}}
 
 %description
 {{package_desc}}
@@ -44,6 +43,8 @@ Obsoletes: {{package_name}}
 %define platform_base_dir %{_libdir}/{{package_install_name}}
 %define platform_lib_dir %{platform_base_dir}/lib
 %define platform_log_dir %{_localstatedir}/log/{{package_install_name}}
+%define platform_share_dir %{_datarootdir}/{{package_install_name}}
+%define cuttlefish_schema_dir %{_datarootdir}/{{package_install_name}}/schema
 
 
 %prep
@@ -58,6 +59,8 @@ cat > rpm.vars.config <<EOF
 {platform_base_dir, "%{platform_base_dir}"}.
 {platform_lib_dir,  "%{platform_lib_dir}"}.
 {platform_log_dir,  "%{platform_log_dir}"}.
+{platform_share_dir, "%{platform_share_dir}"}.
+{cuttlefish_schema_dir, "%{cuttlefish_schema_dir}"}.
 
 {runner_script_dir, "%{platform_bin_dir}"}.
 {runner_base_dir,   "%{platform_base_dir}"}.
@@ -71,15 +74,17 @@ cat > rpm.vars.config <<EOF
 EOF
 
 %build
-OVERLAY_VARS="overlay_vars=../rpm.vars.config" make rel
+OVERLAY_VARS="rpm.vars.config" make rel
 
 %install
-%define relpath       %{_builddir}/%{buildsubdir}/rel/{{package_install_name}}
+%define relpath       %{_builddir}/%{buildsubdir}/_build/default/rel/{{package_install_name}}
 %define buildroot_lib %{buildroot}%{_libdir}/{{package_install_name}}
 %define buildroot_etc %{buildroot}%{_sysconfdir}/{{package_install_name}}
+%define buildroot_share %{buildroot}%{_datarootdir}/{{package_install_name}}
 
 mkdir -p %{buildroot_etc}
 mkdir -p %{buildroot_lib}
+mkdir -p %{buildroot_share}
 mkdir -p %{buildroot}%{_localstatedir}/lib/{{package_install_name}}
 mkdir -p %{buildroot}%{_localstatedir}/log/{{package_install_name}}
 mkdir -p %{buildroot}%{_localstatedir}/run/{{package_install_name}}
@@ -92,6 +97,10 @@ mkdir -p %{buildroot}%{_{{bin_or_sbin}}dir}
 if [ -d %{relpath}/bin ]; then \
    find %{relpath}/bin -type f \
         -exec install -p -D -m 0755 {} %{buildroot}%{_{{bin_or_sbin}}dir}/ \; ;fi
+
+# copy the start_clean.boot
+if [ -f %{relpath}/bin/start_clean.boot ]; then \
+    cp %{relpath}/bin/start_clean.boot %{buildroot_lib}; fi
 
 # Scan for manpages that are optional for each command in the package_commands list
 # If found:
@@ -108,6 +117,9 @@ if [ -d %{_builddir}/%{buildsubdir}/doc/man/man1 ]; then \
    {{/package_commands}}echo -n; fi
 
 cp -R %{relpath}/etc/* %{buildroot_etc}
+cp -R %{relpath}/share/* %{buildroot_share}
+
+echo "%{_datarootdir}/{{package_install_name}}/*" >> additional_files_list
 
 mkdir -p %{buildroot}%{_localstatedir}/lib/{{package_install_name}}
 cp -R %{relpath}/data/* \
@@ -169,14 +181,15 @@ exit 0
 # Man pages are optional and might be missing, read from file
 %files -f additional_files_list
 %defattr(-,{{package_install_user}},{{package_install_group}})
-%{_libdir}/*
-%dir %{_sysconfdir}/{{package_install_name}}
-%config(noreplace) %{_sysconfdir}/{{package_install_name}}/*
-%{_{{bin_or_sbin}}dir}/*
 %{_localstatedir}/lib/{{package_install_name}}
 %{_localstatedir}/log/{{package_install_name}}
 %{_localstatedir}/run/{{package_install_name}}
+%defattr(-,root,root)
 %{_sysconfdir}/init.d/{{package_install_name}}
+%{_{{bin_or_sbin}}dir}/*
+%{_libdir}/*
+%dir %{_sysconfdir}/{{package_install_name}}
+%config(noreplace) %{_sysconfdir}/{{package_install_name}}/*
 
 %clean
 rm -rf %{buildroot}

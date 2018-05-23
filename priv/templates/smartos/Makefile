@@ -42,6 +42,12 @@ OPENSSL_DEP = openssl-1.0.1*
 GCC_DEP     = gcc47-libs>=4.7.0
 SMF_MANIFEST = manifest131.xml
 endif
+ifeq ($(PKGSRC_VERSION),2015Q4)  # SmartOS 15.4.0
+NCURSES_DEP = ncurses-6*
+OPENSSL_DEP = openssl-1.0.2*
+GCC_DEP     = gcc49-libs>=4.9.3
+SMF_MANIFEST = manifest154.xml
+endif
 
 
 # Where we install things (based on vars.config)
@@ -63,7 +69,7 @@ PDATA_ROOT_DIR   = $(shell echo "{{platform_data_dir}}" | cut -d'/' -f 2)
 
 # Recursive assignment of ERTS version
 # We will know this after building the rel
-ERTS_PATH        = $(shell ls $(BUILDDIR)/rel/{{package_install_name}} | egrep -o "erts-.*")
+ERTS_PATH        = $(shell ls $(BUILDDIR)/_build/default/rel/{{package_install_name}} | egrep -o "erts-.*")
 
 TARNAME := $(PACKAGE_NAME_CLEAN)-$(PKG_VERSION)-$(OSNAME)-$(ARCH).tar
 PKGNAME := $(PACKAGE_NAME_CLEAN)-$(PKG_VERSION)-$(OSNAME)-$(ARCH).tgz
@@ -133,23 +139,23 @@ packing_list_files: $(BUILD_STAGE_DIR) templates
 	cd $(BUILD_STAGE_DIR) && \
 	   echo "@comment Packing lib files" >> +CONTENTS && \
 	   echo "@cwd /opt/local" >> +CONTENTS && \
-	   echo "@owner {{package_install_user}}" >> +CONTENTS && \
-	   echo "@group {{package_install_group}}" >> +CONTENTS
+	   echo "@owner root" >> +CONTENTS && \
+	   echo "@group root" >> +CONTENTS
 
 	cd $(BUILD_STAGE_DIR) && \
 	   find lib -type f >> +CONTENTS && \
-	   echo "@exec chown -R {{package_install_user}}:{{package_install_group}} {{platform_base_dir}}" >> +CONTENTS
+	   echo "@exec chown -R root:root {{platform_base_dir}}" >> +CONTENTS
 
 	cd $(BUILD_STAGE_DIR) && \
 	   echo "@comment Packing /usr/local {{bin_or_sbin}} files" >> +CONTENTS && \
-	   echo "@owner {{package_install_user}}" >> +CONTENTS && \
-	   echo "@group {{package_install_group}}" >> +CONTENTS && \
+	   echo "@owner root" >> +CONTENTS && \
+	   echo "@group root" >> +CONTENTS && \
 	   echo "@mode 0755" >> +CONTENTS && \
 	   find {{bin_or_sbin}} -type f >> +CONTENTS
 
 	cd $(BUILD_STAGE_DIR) && \
-	   echo "@owner {{package_install_user}}" >> +CONTENTS && \
-	   echo "@group {{package_install_group}}" >> +CONTENTS && \
+	   echo "@owner root" >> +CONTENTS && \
+	   echo "@group root" >> +CONTENTS && \
 	   find share -type f >> +CONTENTS
 
 	cd $(BUILD_STAGE_DIR) && \
@@ -167,13 +173,13 @@ packing_list_files: $(BUILD_STAGE_DIR) templates
 # I feel dirty now.
 dirs_file: $(BUILD_STAGE_DIR)
 	@echo "Adding data and log directories to directory list"
-	$(eval DIRS_INSTALL = {{platform_data_dir}})
-	$(eval DIRS_INSTALL += {{platform_log_dir}})
+	$(eval PACKAGE_USER_WRITABLE_DIRS = {{platform_data_dir}})
+	$(eval PACKAGE_USER_WRITABLE_DIRS += {{platform_log_dir}})
 	@echo "Scanning var directory for any additional install paths"
-	$(eval DIRS_INSTALL += $(shell cd $(BUILD_STAGE_DIR) && find $(PDATA_ROOT_DIR) -type d -exec printf "/%s " {} \;))
+	$(eval PACKAGE_USER_WRITABLE_DIRS += $(shell cd $(BUILD_STAGE_DIR) && find $(PDATA_ROOT_DIR) -type d -exec printf "/%s " {} \;))
 	cd $(BUILD_STAGE_DIR) && \
 	   cp +INSTALL +INSTALL.tmp && \
-	   sed -e 's|%DIRS_CREATE%|${DIRS_INSTALL}|' < \
+	   sed -e 's|%PACKAGE_USER_WRITABLE_DIRS%|${PACKAGE_USER_WRITABLE_DIRS}|' < \
 	       +INSTALL.tmp > +INSTALL && \
 	   rm +INSTALL.tmp
 
@@ -204,23 +210,23 @@ templates: $(BUILD_STAGE_DIR)
 $(BUILD_STAGE_DIR): buildrel patch_runner
 	@echo "Copying rel directory to staging directory"
 	mkdir -p $@
-	cp -R $(BUILDDIR)/rel/{{package_install_name}} $(BUILD_STAGE_DIR)
+	cp -R $(BUILDDIR)/_build/default/rel/{{package_install_name}} $(BUILD_STAGE_DIR)
 	mkdir -p $(PBIN_DIR)
-	cp -R $(BUILDDIR)/rel/{{package_install_name}}/bin/* $(PBIN_DIR)
+	cp -R $(BUILDDIR)/_build/default/rel/{{package_install_name}}/bin/* $(PBIN_DIR)
 	mkdir -p $(PETC_DIR)
-	cp -R $(BUILDDIR)/rel/{{package_install_name}}/etc/* $(PETC_DIR)
+	cp -R $(BUILDDIR)/_build/default rel/{{package_install_name}}/etc/* $(PETC_DIR)
 	mkdir -p $(PLIB_DIR)
-	cp -R $(BUILDDIR)/rel/{{package_install_name}}/lib $(PLIB_DIR)
-	cp -R $(BUILDDIR)/rel/{{package_install_name}}/erts-* $(PLIB_DIR)
-	cp -R $(BUILDDIR)/rel/{{package_install_name}}/releases $(PLIB_DIR)
+	cp -R $(BUILDDIR)/_build/default/rel/{{package_install_name}}/lib $(PLIB_DIR)
+	cp -R $(BUILDDIR)/_build/default/rel/{{package_install_name}}/erts-* $(PLIB_DIR)
+	cp -R $(BUILDDIR)/_build/default/rel/{{package_install_name}}/releases $(PLIB_DIR)
 	@echo "Copying man pages to staging directory"
 	mkdir -p $(PMAN_DIR)
 	if [ -d $(BUILDDIR)/doc/man/man1 ]; then \
 	    cp -R $(BUILDDIR)/doc/man/man1 $(PMAN_DIR); fi
 	@echo "Copying data and log directories to staging directory"
-	if [ -d $(BUILDDIR)/rel/{{package_install_name}}/data ]; then \
+	if [ -d $(BUILDDIR)/_build/default/rel/{{package_install_name}}/data ]; then \
 	   mkdir -p $(PDATA_DIR) && \
-	   cp -R $(BUILDDIR)/rel/{{package_install_name}}/data/* $(PDATA_DIR); fi
+	   cp -R $(BUILDDIR)/_build/default/rel/{{package_install_name}}/data/* $(PDATA_DIR); fi
 
 
 # If we can read the PKGSRC_VERSION we should fail
@@ -233,10 +239,10 @@ smartos_check:
 
 # Patch the runner script with SmartOS modifications
 patch_runner: buildrel
-	cp $(PKGERDIR)/runner.patch $(BUILDDIR)/rel/{{package_install_name}}/bin/
-	cd $(BUILDDIR)/rel/{{package_install_name}}/bin && \
+	cp $(PKGERDIR)/runner.patch $(BUILDDIR)/_build/default/rel/{{package_install_name}}/bin/
+	cd $(BUILDDIR)/_build/default/rel/{{package_install_name}}/bin && \
 	   patch -p0 {{package_install_name}} runner.patch
-	rm $(BUILDDIR)/rel/{{package_install_name}}/bin/runner.patch
+	rm $(BUILDDIR)/_build/default/rel/{{package_install_name}}/bin/runner.patch
 
 
 # Build the release we need to package
@@ -244,7 +250,7 @@ patch_runner: buildrel
 #  * copy the vars.config over for build config
 buildrel: $(BUILDDIR) smartos_check
 	OVERLAY_VARS="overlay_vars=../smartos/vars.config" $(MAKE) rel
-	chmod 0755 $(BUILDDIR)/rel/{{package_install_name}}/bin/* $(BUILDDIR)/rel/{{package_install_name}}/erts-*/bin/*
+	chmod 0755 $(BUILDDIR)/_build/default/rel/{{package_install_name}}/bin/* $(BUILDDIR)/_build/default/rel/{{package_install_name}}/erts-*/bin/*
 
 $(BUILDDIR):
 	mkdir -p $@
