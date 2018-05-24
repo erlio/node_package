@@ -23,7 +23,6 @@ Usage: $SCRIPT «command»
 where «command» is one of the following:
     { help | start | stop | restart | ping | console | attach
       attach-direct | ertspath | chkconfig | escript | version | getpid
-      top [-interval N] [-sort { reductions | memory | msg_q }] [-lines N] } |
       config { generate | effective | describe VARIABLE } [-l debug]
 
 Run \`$SCRIPT help\` for more detailed information.
@@ -71,20 +70,6 @@ This is the primary script for controlling the $SCRIPT node.
         Checks that the $SCRIPT node is running. Prints "pong" when
         successful.  When the node is stopped or not responding, prints:
         "Node '$NAME_HOST' not responding to pings."
-
-    top [-interval N] [-sort {reductions | memory | msg_q }] [-lines N]
-        Prints performance information about the Erlang Virtual Machine similar
-        to the information provided by the \`top\` command.
-
-        -interval N
-            specifies an interval upon which the statistics are collected.
-
-        -sort { reductions | memory | msg_q }
-            Sorts the output of the command by Reduction Count, Memory
-            Utilization, or Message Queue size
-
-        -lines N
-            Controls the number of processes displayed in the output
 
     attach
         Attaches to the console of a $SCRIPT node running in the background
@@ -355,21 +340,6 @@ case "$1" in
 
         # Start the VM
         exec $CMD
-        ;;
-
-    top)
-        # Make sure the local node IS running
-        node_up_check
-
-        shift
-        MYPID=$$
-        NODE_NAME=${NAME_ARG#* }
-        $ERTS_PATH/erl -noshell -noinput \
-            -pa $RUNNER_PATCH_DIR \
-            -hidden $NAME_PARAM np_etop$MYPID$NAME_HOST $COOKIE_ARG $NET_TICKTIME_ARG \
-            -s etop -s erlang halt -output text \
-            -node $NODE_NAME \
-            $* -tracing off
         ;;
 
     ertspath)
