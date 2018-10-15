@@ -102,6 +102,10 @@ if [ -d %{relpath}/bin ]; then \
 if [ -f %{relpath}/bin/start_clean.boot ]; then \
     cp %{relpath}/bin/start_clean.boot %{buildroot_lib}; fi
 
+# copy the no_dot_erlang.boot
+if [ -f %{relpath}/bin/no_dot_erlang.boot ]; then \
+    cp %{relpath}/bin/no_dot_erlang.boot %{buildroot_lib}; fi
+
 # Scan for manpages that are optional for each command in the package_commands list
 # If found:
 #     * install manpages

@@ -38,6 +38,10 @@ install: build
 	if [ -f _build/default/rel/{{package_install_name}}/bin/start_clean.boot ]; then \
 		cp _build/default/rel/{{package_install_name}}/bin/start_clean.boot \
 				debian/{{package_name}}/usr/lib/{{package_install_name}}; fi
+	## copy the no_dot_erlang.boot
+	if [ -f _build/default/rel/{{package_install_name}}/bin/no_dot_erlang.boot ]; then \
+		cp _build/default/rel/{{package_install_name}}/bin/no_dot_erlang.boot \
+				debian/{{package_name}}/usr/lib/{{package_install_name}}; fi
 	dh_install
 	dh_installman
 	dh_installinit --name={{package_install_name}} --no-start
